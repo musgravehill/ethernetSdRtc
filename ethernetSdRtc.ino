@@ -31,9 +31,23 @@
  * 
  *******************************************************/
 
-#include <SD.h>
+/*
+digitalWrite(W5200_CS, HIGH); //W5200 sleep
+ digitalWrite(W5200_CS, LOW); //W5200 ready
+ 
+ digitalWrite(SDCARD_CS, HIGH); //SD sleep
+ digitalWrite(SDCARD_CS, LOW); //SD ready
+ 
+ delay(50);
+ */
+
 #include <SPI.h>
 #include <EthernetV2_0.h>
+#include <Wire.h>
+#include <RTClib.h>
+#include <SD.h>
+
+RTC_DS1307 RTC;
 
 #define W5200_CS  10
 #define SDCARD_CS 4
@@ -56,23 +70,20 @@ void setup()
 
   digitalWrite(W5200_CS, HIGH); //W5200 sleep
   delay(50);
-  SD.begin(SDCARD_CS); //it bang d10 and d4?
-  //SD.remove("LOG.TXT");
+  SD.begin(SDCARD_CS); //it bang d10 and d4?   
   delay(50);  
   digitalWrite(SDCARD_CS, HIGH); //SD sleep
   delay(50);
   Ethernet.begin(mac, ip); //it bang d10 and d4?
   server.begin();  
+
+  delay(50);
+  Wire.begin();
+  RTC.begin();
+  RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  delay(100);
 }
-/*
-digitalWrite(W5200_CS, HIGH); //W5200 sleep
- digitalWrite(W5200_CS, LOW); //W5200 ready
- 
- digitalWrite(SDCARD_CS, HIGH); //SD sleep
- digitalWrite(SDCARD_CS, LOW); //SD ready
- 
- delay(50);
- */
+
 
 
 void loop()
@@ -129,11 +140,11 @@ void loop()
       }      
     }    
 
-    int freeRam = FreeRam();
-    String freeRamInfo = "freeRAM: 2048 - ";
-    freeRamInfo += freeRam;
-    freeRamInfo += " bytes";
-    Serial.println(freeRamInfo);     
+    //int freeRam = FreeRam();
+    //String freeRamInfo = "freeRAM: 2048 - ";
+    //freeRamInfo += freeRam;
+    //freeRamInfo += " bytes";
+    //Serial.println(freeRamInfo);     
   }   //endif client
 
 }//loop
@@ -161,7 +172,7 @@ void processRequest(String clientRequestUriRaw, EthernetClient client){
   else if(fileExt == ".htm"){  //see "the 8.3 convention"!!!  fileName[8].fileExt[3] 
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: text/html");
-    //client.println("Connnection: close");
+    client.println("Connnection: close");
     client.println();     //!!!! end of http headers
   }
   else if(fileExt == ".txt"){
@@ -204,12 +215,14 @@ void processRequest(String clientRequestUriRaw, EthernetClient client){
   //Serial.print("\r\n");
 
   delay(10);
-  logRequest(clientRequestUri);
-
+  logRequest(clientRequestUri);  
 }
 
 
-void logRequest(String clientRequestUri){    
+void logRequest(String clientRequestUri){ 
+  DateTime now = RTC.now();
+  //Serial.println(now.day(), DEC);
+
   File logFile; //log.txt
   logFile = SD.open("LOG.TXT", FILE_WRITE);  
   if (logFile) {  
@@ -217,15 +230,23 @@ void logRequest(String clientRequestUri){
     char line[50];    
     //Is a C++ String, not a character array like sprintf() is expecting.
     // To convert this string to a character array such that sprintf is expecting, you must use .c_str() in your sprintf
-    sprintf(line, "%s %d", clientRequestUri.c_str(), randNumber);
+    sprintf(line, "%s %02d:%02d:%02d %02d-%02d-%04d", 
+    clientRequestUri.c_str(), 
+    now.hour(), now.minute(), now.second(),
+    now.day(),now.month(), now.year()    
+      );
     logFile.println(line);  
     //Serial.println(line);  
     logFile.close();  
   }
 }
-
+/*
 int freeRam() {
-  extern int __heap_start,*__brkval;
-  int v;
-  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int) __brkval);  
-}
+ extern int __heap_start,*__brkval;
+ int v;
+ return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int) __brkval);  
+ }
+ */
+
+
+
