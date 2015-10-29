@@ -64,7 +64,7 @@ EthernetServer server(80);
 
 void setup()
 {
-  Serial.begin(9600);  
+  //Serial.begin(9600);  
   pinMode(W5200_CS, OUTPUT);      
   pinMode(SDCARD_CS,OUTPUT);
 
@@ -78,9 +78,9 @@ void setup()
   server.begin();  
 
   delay(50);
-  Wire.begin();
+  //Wire.begin();
   RTC.begin();
-  RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  //RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
   delay(100);
 }
 
